@@ -90,33 +90,81 @@
     cursor: pointer;
     font-weight: bold;
   }
-  /* LEGENDA */
-.legenda {
-  margin-top: 15px;
-  padding: 10px;
-  background: #fff;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  width: 260px;
-  font-weight: bold;
-}
 
-.legenda div {
-  display: flex;
+  /* 🔵 MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  justify-content: center;
   align-items: center;
-  margin-bottom: 6px;
+  z-index: 9999;
 }
 
-.legenda .cor {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  margin-right: 8px;
-  display: inline-block;
+.modal-content {
+  background: #fff;
+  padding: 25px;
+  width: 320px;
+  border-radius: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  text-align: center;
+  animation: aparecer .25s ease-out;
 }
 
-.cor.vermelha { background: #d9534f; }
-.cor.amarela { background: #f0ad4e; }
+@keyframes aparecer {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* 🔘 Botões */
+.modal-content button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+  border: none;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+/* 🔴 NORMAL → vermelho */
+.btn-normal {
+  background: #d62828;
+  color: white;
+}
+.btn-normal:hover {
+  filter: brightness(1.2);
+}
+
+/* 🟡 ATC ISOLADO → amarelo */
+.btn-atc {
+  background: #ffcc00;
+  color: #000;
+}
+.btn-atc:hover {
+  filter: brightness(1.15);
+}
+
+/* Cinza cancelar */
+.btn-cancelar {
+  background: #ccc;
+}
+.btn-cancelar:hover {
+  background: #b9b9b9;
+}
+
+/* 🔵 Cores dos trens */
+.trem.normal {
+  background: #d62828 !important; /* vermelho */
+}
+
+.trem.atc {
+  background: #ffcc00 !important; /* amarelo */
+}
 
 </style>
 </head>
@@ -126,6 +174,24 @@
 <h2>VAG - BRR</h2>
 <h2></h2>
 
+<!-- 🔵 MODAL DE ESTADO DO TREM -->
+<div id="modalEstado" class="modal">
+  <div class="modal-content">
+    <h2>Selecionar Estado do Trem</h2>
+
+    <button class="btn-normal" onclick="setEstadoTrem('normal')">
+      NORMAL
+    </button>
+
+    <button class="btn-atc" onclick="setEstadoTrem('atc')">
+      ATC ISOLADO
+    </button>
+
+    <button class="btn-cancelar" onclick="fecharModal()">
+      Cancelar
+    </button>
+  </div>
+</div>
 
 
 <!-- ESTAÇÕES VIA 1 -->
@@ -155,11 +221,6 @@
 <button onclick="criarTrem(2)">Adicionar Trem na Via 2</button>
 <button onclick="limparTudo()">Limpar Tudo</button>
 <button onclick="removerTrem()">Remover Trem</button>
-
-<div class="legenda">
-  <div><span class="cor vermelha"></span> NORMAL</div>
-  <div><span class="cor amarela"></span> ATC ISOLADO</div>
-</div>
 
 
 <h3>Historico</h3>
@@ -230,19 +291,50 @@ function ativarEventosTrem(trem) {
   trem.addEventListener("dblclick", () => editarTrem(trem));
 }
 
-/* ------- EDITAR TREM -------- */
-function editarTrem(trem) {
-  const nome = prompt("Novo nome do trem:", trem.textContent);
-  if (nome) trem.textContent = nome;
+let tremSelecionado = null;
 
-  const estado = prompt("Estado do trem: amarelo ou vermelho?", "");
-  if (estado && ["amarelo", "vermelho"].includes(estado)) {
-    trem.className = "trem " + estado;
+/* ------- EDITAR TREM (NOME + ESTADO) -------- */
+function editarTrem(trem) {
+
+  // 1️⃣ Primeiro: editar o nome
+  const nomeAtual = trem.textContent.trim();
+  const novoNome = prompt("Digite o número/nome do trem:", nomeAtual);
+
+  if (novoNome && novoNome.trim() !== "") {
+    trem.textContent = novoNome.trim();
   }
 
-  registrarEvento(`Trem ${trem.textContent} atualizado (${trem.className.replace("trem ","")})`);
+  // Guarda qual trem será editado na mudança de cor
+  tremSelecionado = trem;
+
+  // 2️⃣ Depois: abre o modal para escolher NORMAL ou ATC ISOLADO
+  document.getElementById("modalEstado").style.display = "flex";
+}
+
+/* ------- FECHAR MODAL ------- */
+function fecharModal() {
+  document.getElementById("modalEstado").style.display = "none";
+  tremSelecionado = null;
+}
+
+/* ------- ALTERAR ESTADO DO TREM ------- */
+function setEstadoTrem(estado) {
+  if (!tremSelecionado) return;
+
+  // Remove estados antigos
+  tremSelecionado.classList.remove("normal", "atc");
+
+  // Aplica o novo
+  if (estado === "normal") {
+    tremSelecionado.classList.add("normal");
+  } else if (estado === "atc") {
+    tremSelecionado.classList.add("atc");
+  }
+
+  registrarEvento(`Trem ${tremSelecionado.textContent} atualizado (${estado})`);
 
   salvar();
+  fecharModal();
 }
 
 /* ------- ARRASTAR -------- */
@@ -325,5 +417,3 @@ carregar(); // inicializa
 
 </body>
 </html>
-
-
