@@ -368,6 +368,8 @@ function setEstadoTrem(estado) {
 
 /* ------- ARRASTAR -------- */
 function iniciarArrasto(e, trem) {
+  e.preventDefault(); // evita seleção de texto
+
   tremAtivo = trem;
   offsetX = e.clientX - trem.offsetLeft;
 
@@ -375,28 +377,91 @@ function iniciarArrasto(e, trem) {
   document.addEventListener("mouseup", soltar);
 }
 
+/* ------- ARRASTAR (TOUCH) -------- */
+function iniciarArrastoTouch(e, trem) {
+  e.preventDefault(); // evita scroll
+
+  tremAtivo = trem;
+  offsetX = e.touches[0].clientX - trem.offsetLeft;
+
+  document.addEventListener("touchmove", arrastarTouch);
+  document.addEventListener("touchend", soltarTouch);
+}
+
+function calcularLimites(via) {
+  const trens = [...via.querySelectorAll(".trem")];
+  const larguraTrem = tremAtivo.offsetWidth;
+
+  let limiteMin = 0;
+  let limiteMax = via.clientWidth - larguraTrem;
+
+  trens.forEach(trem => {
+    if (trem === tremAtivo) return;
+
+    const pos = trem.offsetLeft;
+
+    // trem à esquerda
+    if (pos < tremAtivo.offsetLeft) {
+      limiteMin = Math.max(limiteMin, pos + trem.offsetWidth);
+    }
+
+    // trem à direita
+    if (pos > tremAtivo.offsetLeft) {
+      limiteMax = Math.min(limiteMax, pos - larguraTrem);
+    }
+  });
+
+  return { limiteMin, limiteMax };
+}
+
 function arrastar(e) {
   if (!tremAtivo) return;
 
   const via = tremAtivo.parentElement;
-  const limite = via.clientWidth - 95;
+  const { limiteMin, limiteMax } = calcularLimites(via);
 
   let novaPos = e.clientX - offsetX;
 
-  if (novaPos < 0) novaPos = 0;
-  if (novaPos > limite) novaPos = limite;
+  if (novaPos < limiteMin) novaPos = limiteMin;
+  if (novaPos > limiteMax) novaPos = limiteMax;
+
+  tremAtivo.style.left = novaPos + "px";
+}
+
+function arrastarTouch(e) {
+  if (!tremAtivo) return;
+
+  const via = tremAtivo.parentElement;
+  const { limiteMin, limiteMax } = calcularLimites(via);
+
+  let novaPos = e.touches[0].clientX - offsetX;
+
+  if (novaPos < limiteMin) novaPos = limiteMin;
+  if (novaPos > limiteMax) novaPos = limiteMax;
 
   tremAtivo.style.left = novaPos + "px";
 }
 
 function soltar() {
   if (tremAtivo) registrarEvento(`Trem ${tremAtivo.textContent} movido`);
+
   document.removeEventListener("mousemove", arrastar);
   document.removeEventListener("mouseup", soltar);
 
   salvar();
   tremAtivo = null;
 }
+
+function soltarTouch() {
+  if (tremAtivo) registrarEvento(`Trem ${tremAtivo.textContent} movido`);
+
+  document.removeEventListener("touchmove", arrastarTouch);
+  document.removeEventListener("touchend", soltarTouch);
+
+  salvar();
+  tremAtivo = null;
+}
+
 
 /* ------- SALVAR NO LOCAL STORAGE -------- */
 function salvar() {
