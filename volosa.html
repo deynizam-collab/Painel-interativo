@@ -62,10 +62,32 @@
     font-weight: bold;
   }
 
-  /* Painel de sinalização */
-  .trem.verde { background: #28a745; }
-  .trem.amarelo { background: #f0ad4e; }
-  .trem.vermelho { background: #d9534f; }
+/* ❌ Botão excluir – X maior, branco e fora do trem */
+.trem .btn-excluir {
+  position: absolute;
+  top: -10px;        /* fora do corpo do trem */
+  right: -10px;
+  background: none;
+  border: none;
+  color: #ffffff;    /* branco */
+  font-size: 25px;   /* X maior */
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.trem .btn-excluir:hover {
+  opacity: 1;
+}
+
+.trem .btn-excluir {
+  opacity: 0;
+}
+
+.trem:hover .btn-excluir {
+  opacity: 0.8;
+}
 
   /* Área de eventos */
   #eventos {
@@ -218,7 +240,7 @@
 <button onclick="criarTrem(1)">Adicionar Trem na Via 1</button>
 <button onclick="criarTrem(2)">Adicionar Trem na Via 2</button>
 <button onclick="limparTudo()">Limpar Tudo</button>
-<button onclick="removerTrem()">Remover Trem</button>
+
 
 
 <h3>Historico</h3>
@@ -263,7 +285,22 @@ function criarTrem(viaEscolhida) {
 
   const trem = document.createElement("div");
   trem.className = "trem vermelho"; // começa vermelho (ok)
-  trem.textContent = "UC" + contador;
+  trem.innerHTML = `
+  <span class="nome-trem">UC${contador}</span>
+  <span class="btn-excluir">×</span>
+`;
+trem.querySelector(".btn-excluir").addEventListener("click", e => {
+  e.stopPropagation();
+
+  if (confirm("Deseja remover este trem?")) {
+    registrarEvento(
+      `Trem ${trem.querySelector(".nome-trem").textContent} removido`
+    );
+    trem.remove();
+    salvar();
+  }
+});
+
 
   trem.style.left = "10px";
 
@@ -275,6 +312,7 @@ function criarTrem(viaEscolhida) {
 
   contador++;
 }
+
 
 function removerTrem() {
   const trens = Array.from(document.querySelectorAll(".trem"));
@@ -301,7 +339,6 @@ function removerTrem() {
   salvar();
 }
 
-
 /* ------- EVENTOS DO TREM (clique, arrastar, editar) -------- */
 function ativarEventosTrem(trem) {
   trem.addEventListener("mousedown", e => iniciarArrasto(e, trem));
@@ -315,11 +352,15 @@ let tremSelecionado = null;
 function editarTrem(trem) {
 
   // 1️⃣ Primeiro: editar o nome
-  const nomeAtual = trem.textContent.trim();
+ const nomeSpan = trem.querySelector(".nome-trem");
+const nomeAtual = nomeSpan.textContent.trim();
+
   const novoNome = prompt("Digite o número/nome do trem:", nomeAtual);
 
-  if (novoNome && novoNome.trim() !== "") {
-    trem.textContent = novoNome.trim();
+ if (novoNome && novoNome.trim() !== "") {
+  nomeSpan.textContent = novoNome.trim();
+
+
   }
 
   // Guarda qual trem será editado na mudança de cor
@@ -328,7 +369,6 @@ function editarTrem(trem) {
   // 2️⃣ Depois: abre o modal para escolher NORMAL ou ATC ISOLADO
   document.getElementById("modalEstado").style.display = "flex";
 }
-
 /* ------- FECHAR MODAL ------- */
 function fecharModal() {
   document.getElementById("modalEstado").style.display = "none";
@@ -458,7 +498,7 @@ function salvar() {
   const dados = [];
   document.querySelectorAll(".trem").forEach(t => {
     dados.push({
-      nome: t.textContent,
+      nome: t.querySelector(".nome-trem").textContent,
       estado: t.className.replace("trem ", ""),
       left: t.style.left,
       via: t.parentElement.id
@@ -478,7 +518,20 @@ function carregar() {
     const trem = document.createElement("div");
 
     trem.className = "trem " + d.estado;
-    trem.textContent = d.nome;
+    trem.innerHTML = `
+  <span class="nome-trem">${d.nome}</span>
+  <span class="btn-excluir">×</span>
+`;
+
+trem.querySelector(".btn-excluir").addEventListener("click", e => {
+  e.stopPropagation();
+  if (confirm("Deseja remover este trem?")) {
+    registrarEvento(`Trem ${d.nome} removido`);
+    trem.remove();
+    salvar();
+  }
+});
+
     trem.style.left = d.left;
 
     via.appendChild(trem);
@@ -488,12 +541,24 @@ function carregar() {
   registrarEvento("Sistema carregado do localStorage");
 }
 
-/* ------- LIMPAR TUDO -------- */
 function limparTudo() {
+  const confirmar = confirm(
+    "⚠️ ATENÇÃO!\n\n" +
+    "Esta ação irá remover TODOS os trens das vias.\n" +
+    "Esta operação não poderá ser desfeita.\n\n" +
+    "Deseja realmente continuar?"
+  );
+
+  if (!confirmar) {
+    registrarEvento("Limpeza geral cancelada pelo operador");
+    return;
+  }
+
   localStorage.removeItem("ferrorama");
   document.querySelectorAll(".trem").forEach(t => t.remove());
-  registrarEvento("Todos os trens foram removidos");
+  registrarEvento("Todos os trens foram removidos pelo operador");
 }
+
 
 carregar(); // inicializa
 
@@ -501,3 +566,4 @@ carregar(); // inicializa
 
 </body>
 </html>
+
